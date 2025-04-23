@@ -9,7 +9,62 @@
     <style>
         :root {
             color-scheme: dark;
+            --sizeunit: 10px;
+            --tps: 20;
         }
+
+        body {
+            height: 100vh;
+            padding: 0px;
+            margin: 0px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        main {
+            border: 1px solid white;
+            margin: -1px;
+            box-sizing: border-box;
+            max-width: 100%;
+            position: relative;
+            flex: 1;
+        }
+
+        main>* {
+            position: absolute;
+            transition: bottom calc(1000ms / var(--tps)), left calc(1000ms / var(--tps));
+        }
+
+        main>small#game-info::before {
+            content: "Ticks passed: " attr(data-tick) "\a"
+                "TPS: " attr(data-tps) " (target " attr(data-target-tps) ")";
+            font-family: monospace;
+        }
+
+        main>small#game-info {
+            color: aliceblue;
+            background-color: rgba(33, 33, 33, 80%);
+            top: 3px;
+            left: 3px;
+            z-index: 1000000;
+            white-space: pre;
+            padding: 3px;
+            pointer-events: none;
+        }
+
+        main>div#player::after {
+            white-space: pre;
+            content: "Position:\aX" attr(data-pos-x) " Y" attr(data-pos-y);
+        }
+
+        main>button#pause {
+            padding: 1em;
+            position: fixed;
+            top: 3px;
+            right: 3px;
+        }
+
+        main>button#toggle-lag::after {}
     </style>
 </head>
 
@@ -18,13 +73,94 @@
         <h1>ABO-Proto</h1>
     </header>
     <main>
-        <span>Nuffin' to see here yet…</span>
+
     </main>
     <footer>
         <small>This is a place for me to play around with stuff to eventually go into the game "A Bedtime Oath".<br>
             If you see this, play around with it if you want, but don't expect a full-fledged game or functional demo
-            here, or even anything that looks nice.</small>
+            here, or even anything that looks remotely nice.</small>
     </footer>
+    <script id="utilities">
+        function clamp(val, min, max) {
+            return Math.min(Math.max(val, min), max);
+        }
+    </script>
+    <script>
+        const level = document.querySelector('main');
+
+        const gameInfo = document.createElement('small');
+        gameInfo.id = 'game-info';
+        gameInfo.dataset.tick = 0;
+        [gameInfo.dataset.tps, gameInfo.dataset.targetTps] = [0, 20];
+
+        const pauseBtn = document.createElement('button');
+        pauseBtn.id = 'pause';
+        pauseBtn.addEventListener('click', () => {
+            window.paused = !window.paused;
+        });
+        pauseBtn.autofocus = true;
+
+        const toggleLagBtn = document.createElement('button');
+        toggleLagBtn.addEventListener('click', () => {
+
+        });
+        toggleLagBtn.id = 'toggle-lag';
+        toggleLagBtn.innerText = 'Toggle lag';
+
+        const player = document.createElement('div');
+        player.id = 'player';
+        player.innerText = 'Player :)\n\n';
+        player.style = 'background-color:red;width:calc(10 * var(--sizeunit));height:calc(20 * var(--sizeunit));transform:translateX(-50%);';
+        [player.dataset.posX, player.dataset.posY] = [10, 100];
+
+        level.appendChild(player);
+
+        document.addEventListener('keydown', (evt) => {
+            switch (evt.key) {
+                default: {
+                    console.debug(`Unhandled keypress: ${JSON.stringify(evt.key)}`);
+                }
+            }
+        });
+
+        var [lastTimeStamp, tickCount, paused] = [performance.now(), -1, true];
+        setInterval((() => {
+            if (window.paused && (tickCount >= 0)) {
+                if (pauseBtn.innerText !== '\u23f5') {
+                    pauseBtn.innerText = '\u23f5';
+                    gameInfo.dataset.tps = 0;
+                }
+                return;
+            } else if (pauseBtn.innerText !== '\u23f8') {
+                pauseBtn.innerText = '\u23f8';
+            } else {
+                gameInfo.dataset.tps = (window.paused) ? 0 : Math.round(1000 / (performance.now() - window.lastTimeStamp));
+                window.lastTimeStamp = performance.now();
+            };
+
+            { // Update state
+                window.tickComplete = false;
+                window.tickCount++;
+
+                player.dataset.posY = clamp(parseInt(player.dataset.posY) - 1, 0, 100);
+
+                window.tickComplete = true;
+                window.tpsCounter++;
+            }
+
+            { // Update visuals
+                player.style.bottom = `calc(${player.dataset.posY} * var(--sizeunit))`;
+                player.style.left = `calc(${player.dataset.posX} * var(--sizeunit))`;
+
+                gameInfo.dataset.tick = tickCount; // Increment visual tick counter
+            }
+
+            for (i = 0; (i < 10000) && window.extraLagEnabled; i++)console.log(window.extraLagEnabled);
+        }), (1000 / parseInt(gameInfo.dataset.targetTps)));
+
+        level.appendChild(gameInfo);
+        level.appendChild(pauseBtn);
+    </script>
 </body>
 
 </html>

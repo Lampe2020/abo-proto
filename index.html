@@ -102,7 +102,7 @@
 
         const toggleLagBtn = document.createElement('button');
         toggleLagBtn.addEventListener('click', () => {
-
+            window.extraLagEnabled ^= true;
         });
         toggleLagBtn.id = 'toggle-lag';
         toggleLagBtn.innerText = 'Toggle lag';
@@ -160,6 +160,7 @@
 
         level.appendChild(gameInfo);
         level.appendChild(pauseBtn);
+        pauseBtn.parentElement.insertBefore(toggleLagBtn, pauseBtn);
     </script>
 </body>
 

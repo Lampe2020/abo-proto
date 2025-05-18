@@ -74,14 +74,91 @@
         main>div.gameObj {
             position: fixed;
             bottom: 0px;
+            left: 0px;
+            transform: translate(0, 100%);
+        }
+
+        main.debug>div.gameObj::before {
+            content: attr(data-type) "\0aX:" attr(data-pos-x) ", Y:" attr(data-pos-y) "\00000aData:\0a" attr(data-data);
+            font-size: .3em;
+        }
+
+        body:has(main.debug)>div.mousepos {
+            position: fixed;
+            top: auto;
+            right: auto;
+            left: 0;
+            bottom: 0;
+            user-select: none;
+            pointer-events: none;
+            z-index: 1000001;
+        }
+
+        body:not(:hover)>div.mousepos {
+            visibility: hidden;
+        }
+
+        body:has(main.debug)>div.mousepos::after {
+            content: attr(data-coord);
+        }
+
+        body:has(main.debug)>div.mousepos::before,
+        body:has(main.debug)>div.mousepos::after {
+            background-color: rgba(33, 33, 33, 80%);
+            padding: 3px;
+        }
+
+        body:has(main.debug)>div.mousepos-x {
+            border-left: 1px solid grey;
+            width: fit-content;
+            height: 100vh;
+        }
+
+        body:has(main.debug)>div.mousepos-x::before {
+            content: "X:";
+        }
+
+        body:has(main.debug)>div.mousepos-y {
+            border-bottom: 1px solid grey;
+            width: 100vw;
+            height: fit-content;
+        }
+
+        body:has(main.debug)>div.mousepos-y::before {
+            content: "Y:";
+        }
     </style>
+    <script id="utilities">
+        window.extraLagEnabled = false;
+
+        function clamp(val, min, max) {
+            return Math.min(Math.max(val, min), max);
+        }
+
+        const [mousepos_x, mousepos_y] = [document.createElement('div'), document.createElement('div')];
+        mousepos_x.classList.add('mousepos', 'mousepos-x');
+        mousepos_y.classList.add('mousepos', 'mousepos-y');
+
+        document.addEventListener('mousemove', (event) => {
+            if (!document.body.contains(mousepos_x)) document.body.appendChild(mousepos_x);
+            if (!document.body.contains(mousepos_y)) document.body.appendChild(mousepos_y);
+
+            const sizeunit = (10 + window.innerWidth / 100 + window.innerHeight / 100) / 3;
+            const mousepos = [Math.round(event.clientX / sizeunit), Math.round((window.innerHeight - event.clientY) / sizeunit)];
+
+            [mousepos_x.dataset.coord, mousepos_y.dataset.coord] = mousepos;
+
+            [mousepos_x.style.left, mousepos_y.style.bottom] = [`calc(${mousepos[0]} * var(--sizeunit))`, `calc(${mousepos[1]} * var(--sizeunit))`];
+        });
+    </script>
 </head>
 
 <body>
     <header>
-        <h1>ABO-Proto</h1>
+        <h1>ABO-Proto</h1><span>Note: modifying the HTML while the game runs only modifies it visually, the simulation
+            is hidden away.</span>
     </header>
-    <main>
+    <main class="debug">
 
     </main>
     <footer>
@@ -89,11 +166,6 @@
             If you see this, play around with it if you want, but don't expect a full-fledged game or functional demo
             here, or even anything that looks remotely nice.</small>
     </footer>
-    <script id="utilities">
-        function clamp(val, min, max) {
-            return Math.min(Math.max(val, min), max);
-        }
-    </script>
     <script>
         const level = document.querySelector('main');
 
@@ -115,6 +187,56 @@
         });
         toggleLagBtn.id = 'toggle-lag';
         toggleLagBtn.innerText = 'Toggle lag';
+
+        const gameState = {
+            cam_pos: [0, 0],    // [x, y] for the camera anchor (i.e. how many size units to add in x→ and y↑ direction to all elements to "shift" the view)
+            entities: [],
+            objects: [],
+            geometry: [],
+            ground_height: 0
+        };
+        const levelData = Object.freeze({
+            /* Notes:
+             * Coordinates in screen width/height (1x=1vw, 1y=1vh)
+             */
+            cam_pos: [0, 0],
+            entities: [
+                {
+                    type: 'player',
+                    pos: [100, 100],    // [x, y]
+                    mirror: false   // i.e. looking right
+                }
+            ],
+            objects: {
+                colliding: [],
+                noncolliding: []
+            },
+            geometry: {
+                toggleable: [
+                    [50, 100, 150, 50] // [x1, y1, x2, y2]
+                ],
+                permanent: [
+
+                ],
+                noncolliding: []
+            },
+            ground: {
+                height: 33, // y
+                texture: ''
+            },
+            parallax_layers: [
+                {
+                    distance: 50,   // z
+                    texture: ''
+                },
+                {
+                    distance: 1000, // z
+                    texture: ''
+                }
+            ]
+        });
+
+        //TODO: Make spawning logic, which copies the spawned object's/geometry's/entity's data from levelData to gameState
 
         const player = document.createElement('div');
         player.id = 'player';

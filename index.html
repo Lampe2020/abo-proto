@@ -9,7 +9,8 @@
     <style>
         :root {
             color-scheme: dark;
-            --sizeunit: 10px;
+            --sizeunit: calc((10px + 1vw + 1vh) / 3);
+            /* Average of scaling base (10px) and 1percent of each screen width and height */
             --tps: 20;
         }
 
